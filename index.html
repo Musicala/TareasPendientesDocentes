@@ -80,7 +80,7 @@
     const URL = 'https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec';
 
     // Cargar tareas
-    fetch(URL)
+    fetch(`${URL}?consulta=tareas`)
       .then(res => res.json())
       .then(data => {
         const tabla = document.getElementById("tabla-tareas");
@@ -92,7 +92,7 @@
 
           const tdEstado = document.createElement("td");
           const select = document.createElement("select");
-          ["Pendiente", "En progreso", "Completo"].forEach(op => {
+          ["Pendiente", "En progreso", "Completa"].forEach(op => {
             const option = document.createElement("option");
             option.value = op;
             option.textContent = op;
@@ -112,34 +112,28 @@
             boton.textContent = "Guardando...";
             boton.disabled = true;
 
-            fetch(URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                action: "guardarTarea",
-                numero: tarea.numero,
-                estado: select.value,
-                comentario: textarea.value
+            const estado = select.value;
+            const comentario = textarea.value;
+
+            const urlGuardar = `${URL}?consulta=guardar&numero=${tarea.numero}&estado=${encodeURIComponent(estado)}&comentario=${encodeURIComponent(comentario)}`;
+
+            fetch(urlGuardar)
+              .then(res => res.text())
+              .then(() => {
+                boton.textContent = "Guardado";
+                setTimeout(() => {
+                  boton.textContent = "Guardar";
+                  boton.disabled = false;
+                }, 1500);
               })
-            })
-            .then(res => res.text())
-            .then(() => {
-              boton.textContent = "Guardado";
-              setTimeout(() => {
-                boton.textContent = "Guardar";
-                boton.disabled = false;
-              }, 1500);
-            })
-            .catch(() => {
-              boton.textContent = "Error";
-              boton.style.backgroundColor = "red";
-              setTimeout(() => {
-                boton.textContent = "Guardar";
-                boton.disabled = false;
-              }, 2000);
-            });
+              .catch(() => {
+                boton.textContent = "Error";
+                boton.style.backgroundColor = "red";
+                setTimeout(() => {
+                  boton.textContent = "Guardar";
+                  boton.disabled = false;
+                }, 2000);
+              });
           };
 
           tdEstado.appendChild(select);
