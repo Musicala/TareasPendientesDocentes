@@ -98,33 +98,40 @@
   </div>
 
   <script>
-    const url = "https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec";
+    const proxy = "https://corsproxy.io/?";
+    const originalUrl = "https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec";
+    const url = proxy + encodeURIComponent(originalUrl);
 
     async function cargarTareas() {
-      const respuesta = await fetch(`${url}?action=getTareas`);
-      const tareas = await respuesta.json();
-      const tabla = document.getElementById("tablaTareas");
-      tabla.innerHTML = "";
+      try {
+        const respuesta = await fetch(`${url}?action=getTareas`);
+        const tareas = await respuesta.json();
+        const tabla = document.getElementById("tablaTareas");
+        tabla.innerHTML = "";
 
-      tareas.forEach((tarea, index) => {
-        const fila = document.createElement("tr");
-        fila.innerHTML = `
-          <td id="tarea-nombre-${index}">${tarea.nombre}</td>
-          <td>
-            <select id="estado-${index}">
-              <option value="Pendiente" ${tarea.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-              <option value="Completada" ${tarea.estado === 'Completada' ? 'selected' : ''}>Completada</option>
-            </select>
-          </td>
-          <td>
-            <textarea id="comentario-${index}" rows="2">${tarea.comentario || ''}</textarea>
-          </td>
-          <td>
-            <button class="btn btn-guardar" onclick="guardar(${index}, ${tarea.numero})">Guardar</button>
-          </td>
-        `;
-        tabla.appendChild(fila);
-      });
+        tareas.forEach((tarea, index) => {
+          const fila = document.createElement("tr");
+          fila.innerHTML = `
+            <td id="tarea-nombre-${index}">${tarea.nombre}</td>
+            <td>
+              <select id="estado-${index}">
+                <option value="Pendiente" ${tarea.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                <option value="Completada" ${tarea.estado === 'Completada' ? 'selected' : ''}>Completada</option>
+              </select>
+            </td>
+            <td>
+              <textarea id="comentario-${index}" rows="2">${tarea.comentario || ''}</textarea>
+            </td>
+            <td>
+              <button class="btn btn-guardar" onclick="guardar(${index}, ${tarea.numero})">Guardar</button>
+            </td>
+          `;
+          tabla.appendChild(fila);
+        });
+      } catch (error) {
+        console.error("Error al cargar tareas:", error);
+        alert("❌ No se pudieron cargar las tareas. Revisa la conexión.");
+      }
     }
 
     async function guardar(index, numero) {
@@ -136,21 +143,27 @@
       boton.disabled = true;
       boton.innerText = "Guardando...";
 
-      await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "guardarTarea",
-          numero: numero,
-          estado: estado,
-          comentario: comentario
-        })
-      });
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "guardarTarea",
+            numero: numero,
+            estado: estado,
+            comentario: comentario
+          })
+        });
 
-      // Confirmación visual
-      boton.innerText = "✔️";
-      boton.classList.add("exito");
-      alert(`✅ Se guardó la tarea: “${nombreTarea}”`);
+        boton.innerText = "✔️";
+        boton.classList.add("exito");
+        alert(`✅ Se guardó la tarea: “${nombreTarea}”`);
+      } catch (error) {
+        console.error("Error al guardar:", error);
+        alert("❌ Ocurrió un error al guardar. Intenta de nuevo.");
+        boton.innerText = "Guardar";
+        boton.disabled = false;
+      }
     }
 
     cargarTareas();
