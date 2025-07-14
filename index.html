@@ -77,10 +77,9 @@
   </div>
 
   <script>
-    const URL = 'https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec';
+    const URL = 'https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec?consulta=tareas';
 
-    // Cargar tareas
-    fetch(`${URL}?consulta=tareas`)
+    fetch(URL)
       .then(res => res.json())
       .then(data => {
         const tabla = document.getElementById("tabla-tareas");
@@ -112,28 +111,35 @@
             boton.textContent = "Guardando...";
             boton.disabled = true;
 
-            const estado = select.value;
-            const comentario = textarea.value;
-
-            const urlGuardar = `${URL}?consulta=guardar&numero=${tarea.numero}&estado=${encodeURIComponent(estado)}&comentario=${encodeURIComponent(comentario)}`;
-
-            fetch(urlGuardar)
-              .then(res => res.text())
-              .then(() => {
-                boton.textContent = "Guardado";
-                setTimeout(() => {
-                  boton.textContent = "Guardar";
-                  boton.disabled = false;
-                }, 1500);
+            fetch(URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                action: "guardarTarea",
+                numero: tarea.numero,
+                estado: select.value,
+                comentario: textarea.value
               })
-              .catch(() => {
-                boton.textContent = "Error";
-                boton.style.backgroundColor = "red";
-                setTimeout(() => {
-                  boton.textContent = "Guardar";
-                  boton.disabled = false;
-                }, 2000);
-              });
+            })
+            .then(res => res.text())
+            .then(() => {
+              boton.textContent = "Guardado";
+              setTimeout(() => {
+                boton.textContent = "Guardar";
+                boton.disabled = false;
+              }, 1500);
+            })
+            .catch(() => {
+              boton.textContent = "Error";
+              boton.style.backgroundColor = "red";
+              setTimeout(() => {
+                boton.textContent = "Guardar";
+                boton.disabled = false;
+                boton.style.backgroundColor = "#007bff";
+              }, 2000);
+            });
           };
 
           tdEstado.appendChild(select);
