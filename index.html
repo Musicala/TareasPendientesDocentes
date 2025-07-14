@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro de Tareas Docentes - Musicala</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary: #007BFF;
+      --gray: #f9f9f9;
+      --border: #ddd;
+      --font: 'Roboto', sans-serif;
+      --success: #28a745;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--gray);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+
+    th {
+      background-color: var(--gray);
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      color: white;
+      min-width: 100px;
+    }
+
+    .btn-guardar {
+      background-color: var(--primary);
+    }
+
+    .btn-guardar.exito {
+      background-color: var(--success);
+      cursor: default;
+    }
+
+    textarea {
+      width: 100%;
+      resize: vertical;
+    }
+
+    select {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Registro de Tareas Docentes</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Tarea</th>
+          <th>Estado</th>
+          <th>Observación</th>
+          <th>Guardar</th>
+        </tr>
+      </thead>
+      <tbody id="tablaTareas">
+        <!-- Se cargan dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const url = "https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec";
+
+    async function cargarTareas() {
+      const respuesta = await fetch(`${url}?action=getTareas`);
+      const tareas = await respuesta.json();
+      const tabla = document.getElementById("tablaTareas");
+      tabla.innerHTML = "";
+
+      tareas.forEach((tarea, index) => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td id="tarea-nombre-${index}">${tarea.nombre}</td>
+          <td>
+            <select id="estado-${index}">
+              <option value="Pendiente" ${tarea.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+              <option value="Completada" ${tarea.estado === 'Completada' ? 'selected' : ''}>Completada</option>
+            </select>
+          </td>
+          <td>
+            <textarea id="comentario-${index}" rows="2">${tarea.comentario || ''}</textarea>
+          </td>
+          <td>
+            <button class="btn btn-guardar" onclick="guardar(${index}, ${tarea.numero})">Guardar</button>
+          </td>
+        `;
+        tabla.appendChild(fila);
+      });
+    }
+
+    async function guardar(index, numero) {
+      const estado = document.getElementById(`estado-${index}`).value;
+      const comentario = document.getElementById(`comentario-${index}`).value;
+      const boton = document.querySelectorAll(".btn-guardar")[index];
+      const nombreTarea = document.getElementById(`tarea-nombre-${index}`).innerText;
+
+      boton.disabled = true;
+      boton.innerText = "Guardando...";
+
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "guardarTarea",
+          numero: numero,
+          estado: estado,
+          comentario: comentario
+        })
+      });
+
+      // Confirmación visual
+      boton.innerText = "✔️";
+      boton.classList.add("exito");
+      alert(`✅ Se guardó la tarea: “${nombreTarea}”`);
+    }
+
+    cargarTareas();
+  </script>
+</body>
+</html>
