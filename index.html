@@ -5,55 +5,56 @@
   <title>Registro de Tareas Docentes</title>
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #fafafa;
-      padding: 30px;
+      font-family: Arial, sans-serif;
+      background: #f8f8f8;
+      padding: 40px;
     }
-
     .container {
-      max-width: 900px;
-      margin: auto;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      padding: 20px;
+      padding: 30px;
+      max-width: 1000px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
     }
-
     h1 {
       text-align: center;
+      font-size: 32px;
+      margin-bottom: 30px;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
     }
-
     th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
+      padding: 14px;
       text-align: left;
     }
-
     th {
-      background-color: #f8f8f8;
+      background-color: #fafafa;
+      font-weight: bold;
     }
-
+    tr:not(:last-child) {
+      border-bottom: 1px solid #eee;
+    }
+    select, textarea {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
     button {
+      padding: 8px 12px;
       background-color: #007bff;
       color: white;
       border: none;
-      padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
     }
-
     button:disabled {
       background-color: #aaa;
-    }
-
-    select, textarea {
-      width: 100%;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -70,71 +71,93 @@
         </tr>
       </thead>
       <tbody id="tabla-tareas">
-        <!-- Aquí se cargan las filas -->
+        <!-- Se cargan dinámicamente -->
       </tbody>
     </table>
   </div>
 
   <script>
-    const proxy = "https://corsproxy.io/?";
-    const url = proxy + encodeURIComponent("https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec");
+    const URL = 'https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec';
 
-    async function cargarTareas() {
-      const response = await fetch(url);
-      const tareas = await response.json();
-      const tbody = document.getElementById("tabla-tareas");
+    // Cargar tareas
+    fetch(URL)
+      .then(res => res.json())
+      .then(data => {
+        const tabla = document.getElementById("tabla-tareas");
+        data.forEach(tarea => {
+          const fila = document.createElement("tr");
 
-      tareas.forEach((tarea, i) => {
-        const fila = document.createElement("tr");
+          const tdTarea = document.createElement("td");
+          tdTarea.textContent = tarea.nombre;
 
-        fila.innerHTML = `
-          <td>${tarea.nombre}</td>
-          <td>
-            <select>
-              <option ${tarea.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
-              <option ${tarea.estado === "Completada" ? "selected" : ""}>Completada</option>
-              <option ${tarea.estado === "No aplica" ? "selected" : ""}>No aplica</option>
-            </select>
-          </td>
-          <td>
-            <textarea>${tarea.comentario || ""}</textarea>
-          </td>
-          <td>
-            <button onclick="guardarTarea(${i}, this)">Guardar</button>
-          </td>
-        `;
+          const tdEstado = document.createElement("td");
+          const select = document.createElement("select");
+          ["Pendiente", "En progreso", "Completo"].forEach(op => {
+            const option = document.createElement("option");
+            option.value = op;
+            option.textContent = op;
+            if (op === tarea.estado) option.selected = true;
+            select.appendChild(option);
+          });
 
-        tbody.appendChild(fila);
+          const tdComentario = document.createElement("td");
+          const textarea = document.createElement("textarea");
+          textarea.rows = 2;
+          textarea.value = tarea.comentario || "";
+
+          const tdBoton = document.createElement("td");
+          const boton = document.createElement("button");
+          boton.textContent = "Guardar";
+          boton.onclick = () => {
+            boton.textContent = "Guardando...";
+            boton.disabled = true;
+
+            fetch(URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                action: "guardarTarea",
+                numero: tarea.numero,
+                estado: select.value,
+                comentario: textarea.value
+              })
+            })
+            .then(res => res.text())
+            .then(() => {
+              boton.textContent = "Guardado";
+              setTimeout(() => {
+                boton.textContent = "Guardar";
+                boton.disabled = false;
+              }, 1500);
+            })
+            .catch(() => {
+              boton.textContent = "Error";
+              boton.style.backgroundColor = "red";
+              setTimeout(() => {
+                boton.textContent = "Guardar";
+                boton.disabled = false;
+              }, 2000);
+            });
+          };
+
+          tdEstado.appendChild(select);
+          tdComentario.appendChild(textarea);
+          tdBoton.appendChild(boton);
+
+          fila.appendChild(tdTarea);
+          fila.appendChild(tdEstado);
+          fila.appendChild(tdComentario);
+          fila.appendChild(tdBoton);
+
+          tabla.appendChild(fila);
+        });
+      })
+      .catch(err => {
+        console.error("Error cargando tareas:", err);
+        document.getElementById("tabla-tareas").innerHTML = "<tr><td colspan='4'>No se pudieron cargar las tareas.</td></tr>";
       });
-    }
-
-    async function guardarTarea(i, boton) {
-      const fila = boton.closest("tr");
-      const estado = fila.querySelector("select").value;
-      const comentario = fila.querySelector("textarea").value;
-
-      boton.textContent = "Guardando...";
-      boton.disabled = true;
-
-      const datos = {
-        action: "guardarTarea",
-        numero: i,
-        estado: estado,
-        comentario: comentario
-      };
-
-      await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(datos),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-
-      boton.textContent = "Guardado";
-    }
-
-    cargarTareas();
   </script>
 </body>
 </html>
