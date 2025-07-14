@@ -2,79 +2,57 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Registro de Tareas Docentes - Musicala</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Tareas Docentes</title>
   <style>
-    :root {
-      --primary: #007BFF;
-      --gray: #f9f9f9;
-      --border: #ddd;
-      --font: 'Roboto', sans-serif;
-      --success: #28a745;
-    }
-
     body {
-      font-family: var(--font);
-      background-color: var(--gray);
-      margin: 0;
-      padding: 20px;
+      font-family: sans-serif;
+      background-color: #fafafa;
+      padding: 30px;
     }
 
     .container {
       max-width: 900px;
       margin: auto;
-      background-color: #fff;
-      padding: 20px;
+      background: white;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 20px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 20px;
     }
 
     th, td {
-      padding: 10px;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-      font-size: 15px;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
     }
 
     th {
-      background-color: var(--gray);
+      background-color: #f8f8f8;
     }
 
-    .btn {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
+    button {
+      background-color: #007bff;
       color: white;
-      min-width: 100px;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
-    .btn-guardar {
-      background-color: var(--primary);
+    button:disabled {
+      background-color: #aaa;
     }
 
-    .btn-guardar.exito {
-      background-color: var(--success);
-      cursor: default;
-    }
-
-    textarea {
-      width: 100%;
-      resize: vertical;
-    }
-
-    select {
+    select, textarea {
       width: 100%;
     }
   </style>
@@ -91,79 +69,69 @@
           <th>Guardar</th>
         </tr>
       </thead>
-      <tbody id="tablaTareas">
-        <!-- Se cargan dinámicamente -->
+      <tbody id="tabla-tareas">
+        <!-- Aquí se cargan las filas -->
       </tbody>
     </table>
   </div>
 
   <script>
     const proxy = "https://corsproxy.io/?";
-    const originalUrl = "https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec";
-    const url = proxy + encodeURIComponent(originalUrl);
+    const url = proxy + encodeURIComponent("https://script.google.com/macros/s/AKfycbwWPJ_AntdIYbty13x3kqk5NaAlUZ59Hhe3MV0tRwdmK69xCrdbK4fwgoG89t1QyktzYQ/exec");
 
     async function cargarTareas() {
-      try {
-        const respuesta = await fetch(`${url}?action=getTareas`);
-        const tareas = await respuesta.json();
-        const tabla = document.getElementById("tablaTareas");
-        tabla.innerHTML = "";
+      const response = await fetch(url);
+      const tareas = await response.json();
+      const tbody = document.getElementById("tabla-tareas");
 
-        tareas.forEach((tarea, index) => {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
-            <td id="tarea-nombre-${index}">${tarea.nombre}</td>
-            <td>
-              <select id="estado-${index}">
-                <option value="Pendiente" ${tarea.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                <option value="Completada" ${tarea.estado === 'Completada' ? 'selected' : ''}>Completada</option>
-              </select>
-            </td>
-            <td>
-              <textarea id="comentario-${index}" rows="2">${tarea.comentario || ''}</textarea>
-            </td>
-            <td>
-              <button class="btn btn-guardar" onclick="guardar(${index}, ${tarea.numero})">Guardar</button>
-            </td>
-          `;
-          tabla.appendChild(fila);
-        });
-      } catch (error) {
-        console.error("Error al cargar tareas:", error);
-        alert("❌ No se pudieron cargar las tareas. Revisa la conexión.");
-      }
+      tareas.forEach((tarea, i) => {
+        const fila = document.createElement("tr");
+
+        fila.innerHTML = `
+          <td>${tarea.nombre}</td>
+          <td>
+            <select>
+              <option ${tarea.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
+              <option ${tarea.estado === "Completada" ? "selected" : ""}>Completada</option>
+              <option ${tarea.estado === "No aplica" ? "selected" : ""}>No aplica</option>
+            </select>
+          </td>
+          <td>
+            <textarea>${tarea.comentario || ""}</textarea>
+          </td>
+          <td>
+            <button onclick="guardarTarea(${i}, this)">Guardar</button>
+          </td>
+        `;
+
+        tbody.appendChild(fila);
+      });
     }
 
-    async function guardar(index, numero) {
-      const estado = document.getElementById(`estado-${index}`).value;
-      const comentario = document.getElementById(`comentario-${index}`).value;
-      const boton = document.querySelectorAll(".btn-guardar")[index];
-      const nombreTarea = document.getElementById(`tarea-nombre-${index}`).innerText;
+    async function guardarTarea(i, boton) {
+      const fila = boton.closest("tr");
+      const estado = fila.querySelector("select").value;
+      const comentario = fila.querySelector("textarea").value;
 
+      boton.textContent = "Guardando...";
       boton.disabled = true;
-      boton.innerText = "Guardando...";
 
-      try {
-        await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "guardarTarea",
-            numero: numero,
-            estado: estado,
-            comentario: comentario
-          })
-        });
+      const datos = {
+        action: "guardarTarea",
+        numero: i,
+        estado: estado,
+        comentario: comentario
+      };
 
-        boton.innerText = "✔️";
-        boton.classList.add("exito");
-        alert(`✅ Se guardó la tarea: “${nombreTarea}”`);
-      } catch (error) {
-        console.error("Error al guardar:", error);
-        alert("❌ Ocurrió un error al guardar. Intenta de nuevo.");
-        boton.innerText = "Guardar";
-        boton.disabled = false;
-      }
+      await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(datos),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      boton.textContent = "Guardado";
     }
 
     cargarTareas();
